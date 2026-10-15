@@ -7,7 +7,7 @@ spec:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: mentor@trainwithshubham.com
     privateKeySecretRef:
-      name: letsencrypt-account-key
+      name: letsencrypt-account-key-v2
     solvers:
       - http01:
           gatewayHTTPRoute:
