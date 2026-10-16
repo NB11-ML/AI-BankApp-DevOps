@@ -84,37 +84,37 @@ jobs:
           for attempt in 1 2 3 4 5; do
             echo "Manifest update attempt: ${attempt}/5"
 
-          # Start each attempt from the latest remote branch.
-          git fetch origin feat/gitops
-          git checkout -B manifest-update origin/feat/gitops
-          git reset --hard origin/feat/gitops
+            # Start each attempt from the latest remote branch.
+            git fetch origin feat/gitops
+            git checkout -B manifest-update origin/feat/gitops
+            git reset --hard origin/feat/gitops
 
-          # Update the application container image.
-          sed -i -E \
-            "s|(image:[[:space:]]*)${DOCKERHUB_REPO}:[^[:space:]]+|\1${DOCKERHUB_REPO}:${IMAGE_TAG}|" \
-            k8s/bankapp-deployment.yml
+            # Update the application container image.
+            sed -i -E \
+              "s|(image:[[:space:]]*)${DOCKERHUB_REPO}:[^[:space:]]+|\1${DOCKERHUB_REPO}:${IMAGE_TAG}|" \
+              k8s/bankapp-deployment.yml
 
-          git add k8s/bankapp-deployment.yml
+            git add k8s/bankapp-deployment.yml
 
-          if git diff --cached --quiet; then
-          echo "Manifest already contains the requested image."
-          exit 0
-          fi
-
-          git commit -m "ci: update bankapp image to ${IMAGE_TAG} [skip ci]"
-
-          # Refresh the remote branch immediately before pushing.
-          git fetch origin feat/gitops
-
-          if git merge-base --is-ancestor origin/feat/gitops HEAD; then
-            if git push origin HEAD:feat/gitops; then
-              echo "Manifest update pushed successfully."
+            if git diff --cached --quiet; then
+              echo "Manifest already contains the requested image."
               exit 0
             fi
-          fi
 
-          echo "Remote branch advanced. Retrying from the latest version."
-          sleep 2
+            git commit -m "ci: update bankapp image to ${IMAGE_TAG} [skip ci]"
+
+            # Refresh the remote branch immediately before pushing.
+            git fetch origin feat/gitops
+
+            if git merge-base --is-ancestor origin/feat/gitops HEAD; then
+              if git push origin HEAD:feat/gitops; then
+                echo "Manifest update pushed successfully."
+                exit 0
+              fi
+            fi
+
+            echo "Remote branch advanced. Retrying from the latest version."
+            sleep 2
           done
 
           echo "ERROR: Manifest push failed after five attempts."
