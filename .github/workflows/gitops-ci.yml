@@ -79,44 +79,43 @@ jobs:
           set -euo pipefail
 
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          for attempt in 1 2 3; do
-            echo "Manifest update attempt: ${attempt}"
+          for attempt in 1 2 3 4 5; do
+            echo "Manifest update attempt: ${attempt}/5"
 
-            git fetch origin feat/gitops
-            git checkout -B manifest-update origin/feat/gitops
+          # Start each attempt from the latest remote branch.
+          git fetch origin feat/gitops
+          git checkout -B manifest-update origin/feat/gitops
+          git reset --hard origin/feat/gitops
 
-            sed -i -E \
-              "s|(image:[[:space:]]*)${DOCKERHUB_REPO}:[^[:space:]]+|\1${DOCKERHUB_REPO}:${IMAGE_TAG}|" \
-              k8s/bankapp-deployment.yml
+          # Update the application container image.
+          sed -i -E \
+            "s|(image:[[:space:]]*)${DOCKERHUB_REPO}:[^[:space:]]+|\1${DOCKERHUB_REPO}:${IMAGE_TAG}|" \
+            k8s/bankapp-deployment.yml
 
-            git add k8s/bankapp-deployment.yml
+          git add k8s/bankapp-deployment.yml
 
-            if git diff --cached --quiet; then
-              echo "Manifest already contains the requested image."
-              exit 0
-            fi
+          if git diff --cached --quiet; then
+          echo "Manifest already contains the requested image."
+          exit 0
+          fi
 
-            git commit -m "ci: update bankapp image to ${IMAGE_TAG} [skip ci]"
+          git commit -m "ci: update bankapp image to ${IMAGE_TAG} [skip ci]"
 
-            git fetch origin feat/gitops
+          # Refresh the remote branch immediately before pushing.
+          git fetch origin feat/gitops
 
-            if ! git rebase origin/feat/gitops; then
-              git rebase --abort || true
-              echo "Rebase conflict; retrying."
-              sleep 2
-              continue
-            fi
-
+          if git merge-base --is-ancestor origin/feat/gitops HEAD; then
             if git push origin HEAD:feat/gitops; then
               echo "Manifest update pushed successfully."
               exit 0
             fi
+          fi
 
-            echo "Push rejected; retrying."
-            sleep 2
+          echo "Remote branch advanced. Retrying from the latest version."
+          sleep 2
           done
 
-          echo "ERROR: Manifest push failed after three attempts."
+          echo "ERROR: Manifest push failed after five attempts."
           exit 1
